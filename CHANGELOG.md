@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 — 2026-11-18
+- Popup e Run / Stop button (auto-scroll by default OFF, Run chaple chalu)
+- Page reload code puro remove: ar kokhono refresh hobe na; stuck hole ektu upore uthe abar niche name
+- Background theke nijer moto LinkedIn tab khola bondho (shudhu Run chaple, tab na thakle khule)
+
 ## 1.5.2 — 2026-11-18
 - Fix: bar bar auto refresh. LinkedIn er bhitorer scroll container khuje scroll kore (window na)
 - Reload shudhu ~15 bar stuck hole, ar 10 minit e ekbar er beshi na

@@ -4,8 +4,9 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, lastSavedPath, autoScroll = true } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
-  $("autoScroll").checked = autoScroll;
+  const { days = {}, lastSavedPath, autoScroll = false } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
+  $("run").textContent = autoScroll ? "⏹ Stop Auto-scroll (cholche…)" : "▶ Run Auto-scroll";
+  $("run").classList.toggle("on", autoScroll);
   const today = dayKey();
   const [y, m, d] = today.split("-");
   const todayPosts = days[today] || [];
@@ -37,7 +38,16 @@ async function render() {
 }
 
 $("dl").onclick = () => chrome.runtime.sendMessage({ type: "DOWNLOAD", key: dayKey() });
-$("autoScroll").onchange = e => chrome.storage.local.set({ autoScroll: e.target.checked });
+$("run").onclick = async () => {
+  const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
+  const on = !autoScroll;
+  if (on) {
+    // LinkedIn feed tab na thakle khulo
+    const tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
+    if (!tabs.length) await chrome.tabs.create({ url: "https://www.linkedin.com/feed/" });
+  }
+  await chrome.storage.local.set({ autoScroll: on });
+};
 $("folder").onclick = () => chrome.runtime.sendMessage({ type: "SHOW_FOLDER" });
 chrome.storage.onChanged.addListener(render);
 $("dlDay").onclick = () => $("days").value && chrome.runtime.sendMessage({ type: "DOWNLOAD", key: $("days").value });

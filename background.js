@@ -106,18 +106,13 @@ chrome.alarms.onAlarm.addListener(a => {
 
 // ---------- Auto-scroll: minimize thakleo 30s por por LinkedIn tab ke scroll korano ----------
 async function autoScrollTick() {
-  const { autoScroll = true } = await chrome.storage.local.get("autoScroll");
+  const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
   if (!autoScroll) return;
-  let tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
-  if (!tabs.length) {
-    // LinkedIn feed tab na thakle background e ekta khule (focus nibe na)
-    await chrome.tabs.create({ url: "https://www.linkedin.com/feed/", active: false });
-    return;
-  }
+  const tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
   for (const t of tabs) chrome.tabs.sendMessage(t.id, { type: "AUTO_TICK" }).catch(() => {});
 }
 async function syncAutoScrollAlarm() {
-  const { autoScroll = true } = await chrome.storage.local.get("autoScroll");
+  const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
   if (autoScroll) chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 });
   else chrome.alarms.clear("auto-scroll");
 }

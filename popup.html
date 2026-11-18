@@ -12,6 +12,8 @@
   select { width: 100%; padding: 6px; margin-top: 6px; }
   .row { display: flex; gap: 6px; } .row button { flex: 1; }
   .gray { background: #eee; }
+  #run { background: #16a34a; color: #fff; font-size: 14px; }
+  #run.on { background: #dc2626; }
   #list { max-height: 240px; overflow: auto; margin-top: 8px; font-size: 12px; }
   .item { border-bottom: 1px solid #ddd; padding: 6px 0; }
   .item a { color: #0a66c2; word-break: break-all; }
@@ -21,7 +23,7 @@
 <body>
   <h3>Today: <span id="count">0</span> hiring posts</h3>
   <div class="sub" id="today"></div>
-  <label><input type="checkbox" id="autoScroll"> <b>Auto-scroll LinkedIn feed</b> (minimize thakleo)</label>
+  <button id="run" class="full">▶ Run Auto-scroll</button>
   <div class="sub" id="last"></div>
   <div class="sub">⏰ Protidin dupur 1tar por notification ashbe — "Download" chaple tobei download hobe.</div>
   <button id="dl" class="full">Download Today's Word File</button>

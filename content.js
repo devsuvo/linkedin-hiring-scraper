@@ -175,13 +175,12 @@ function autoTick() {
   const h = sc.scrollHeight;
   if (sc.scrollTop === before && h === lastHeight) stuck++; else stuck = 0;
   lastHeight = h;
-  if (stuck >= 15) { // ~15 bar cheshta korar poro kichu na hole
-    chrome.storage.local.get("lastReload").then(({ lastReload = 0 }) => {
-      if (Date.now() - lastReload < 10 * 60 * 1000) { stuck = 0; return; } // 10 minit e ekbar er beshi reload na
-      log("Feed stuck, reloading…");
-      chrome.storage.local.set({ lastReload: Date.now() });
-      location.reload();
-    });
+  // Kokhono page reload kora hoy na. Stuck hole ektu upore uthe abar niche nami — LinkedIn notun post load kore
+  if (stuck >= 3) {
+    log("Feed stuck, nudging…");
+    sc.scrollBy({ top: -600, behavior: "instant" });
+    setTimeout(() => sc.scrollTo({ top: sc.scrollHeight, behavior: "instant" }), 800);
+    stuck = 0;
   }
 }
 
@@ -208,7 +207,7 @@ function startOwnTimer() {
   ownTimer = setTimeout(loop, 3000);
 }
 
-chrome.storage.local.get("autoScroll").then(({ autoScroll = true }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
+chrome.storage.local.get("autoScroll").then(({ autoScroll = false }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
 chrome.storage.onChanged.addListener(ch => {
   if (!ch.autoScroll) return;
   if (ch.autoScroll.newValue && onFeed()) startOwnTimer(); else clearTimeout(ownTimer);
