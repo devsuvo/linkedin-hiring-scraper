@@ -201,10 +201,21 @@ function autoTick() {
 
   setTimeout(() => {
     // Stuck = scroll ekdom nore ni (feed er sesh e, notun post load hocche)
-    if (Math.abs(sc.scrollTop - before) < 5 && sc.scrollHeight === lastHeight) stuck++; else stuck = 0;
+    // Stuck = feed er ekdom niche achi ar notun post (height) ase ni
+    const viewH = sc === (document.scrollingElement || document.documentElement) ? window.innerHeight : sc.clientHeight;
+    const atBottom = sc.scrollTop + viewH >= sc.scrollHeight - 80;
+    if (atBottom && sc.scrollHeight === lastHeight) stuck++; else if (sc.scrollHeight !== lastHeight) stuck = 0;
     lastHeight = sc.scrollHeight;
-    // Kokhono reload / top e jaowa / "New posts" click na. Stuck hole shudhu 300px upore, porer tick e abar niche
-    if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "instant" }); stuck = 0; }
+    // Feed sesh: age 2 bar ektu upore-niche kore dekhi; tao notun post na ashle page reload (2 minit e 1 bar er beshi na)
+    if (stuck === 3 || stuck === 6) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "instant" }); }
+    if (stuck >= 9) {
+      stuck = 0;
+      chrome.storage.local.get("lastReload").then(({ lastReload = 0 }) => {
+        if (Date.now() - lastReload < 2 * 60 * 1000) return;
+        log("Feed sesh — reload kore notun post anchi");
+        chrome.storage.local.set({ lastReload: Date.now() }).then(() => location.reload());
+      }).catch(() => {});
+    }
   }, 800);
 }
 

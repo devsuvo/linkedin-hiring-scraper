@@ -36,17 +36,79 @@ function esc(s) {
   return String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// ---------- Post theke tottho ber kora (Word file sajanor jonno) ----------
+function extractInfo(text) {
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const pick = re => { for (const l of lines) { const m = l.match(re); if (m) return m[1].trim().replace(/[|•·].*$/, "").slice(0, 80); } return ""; };
+  const role =
+    pick(/(?:position|role|job\s*title|designation|post)\s*[:\-–]\s*(.+)/i) ||
+    pick(/hiring\s*(?:for|an?|:|\||–|-)\s*(?:an?\s+)?(.+)/i) ||
+    pick(/looking\s*for\s*(?:an?\s+)?(.+?)(?:\s+to\s+join|\s+with|[.!]|$)/i) ||
+    (lines[0] || "").replace(/^[^\w]*(we['’]?\s*re|we\s*are)\s*hiring[!:\s|–-]*/i, "").slice(0, 80);
+  const location = pick(/(?:location|based\s*in|job\s*location)\s*[:\-–]\s*(.+)/i) || (/\bremote\b/i.test(text) ? "Remote" : "");
+  const type = (text.match(/\b(full[\s-]?time|part[\s-]?time|contract(?:ual)?|internship|freelance|hybrid|on[\s-]?site)\b/i) || [])[1] || "";
+  const emails = [...new Set(text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) || [])];
+  const urls = [...new Set((text.match(/https?:\/\/[^\s)]+/g) || []).filter(u => !/linkedin\.com\/feed|hashtag/i.test(u)))];
+  return { role: role || "—", location: location || "—", type: type || "—", emails, urls };
+}
+
 function buildWordHtml(key, posts) {
-  const items = posts.map((p, i) => `
-    <h2 style="color:#0a66c2">${i + 1}. ${esc(p.author || "Unknown")} <span style="font-size:10pt;color:#666">(${esc(p.source)})</span></h2>
-    <p><b>Post Link:</b> <a href="${esc(p.link)}">${esc(p.link)}</a></p>
-    <p><b>Saved:</b> ${esc(p.time)}</p>
-    <p>${esc(p.text).replace(/\n/g, "<br>")}</p>
-    <hr>`).join("");
+  const [y, m] = key.split("-");
+  const groups = {};
+  posts.forEach(p => (groups[p.source || "Other"] = groups[p.source || "Other"] || []).push(p));
+  const linkCell = l => /^https?:/.test(l) ? `<a href="${esc(l)}">Open post</a>` : `<span style="color:#999">no link</span>`;
+
+  // Summary table — section order onujayi numbering
+  const ordered = Object.values(groups).flat();
+  const summaryRows = ordered.map((p, i) => {
+    const info = extractInfo(p.text);
+    return `<tr style="background:${i % 2 ? "#f3f6fb" : "#ffffff"}">
+      <td align="center">${i + 1}</td><td><b>${esc(p.author || "Unknown")}</b></td><td>${esc(info.role)}</td>
+      <td>${esc(info.location)}</td><td>${esc(info.type)}</td><td>${esc(p.source)}</td><td>${linkCell(p.link)}</td></tr>`;
+  }).join("");
+
+  let n = 0;
+  const sections = Object.entries(groups).map(([src, list]) => `
+    <h1 style="color:#0a66c2;border-bottom:2px solid #0a66c2;padding-bottom:4px;margin-top:28pt">${esc(src)} (${list.length})</h1>
+    ${list.map(p => {
+      n++;
+      const info = extractInfo(p.text);
+      const meta = [
+        ["Company / Posted by", esc(p.author || "Unknown")],
+        ["Role", esc(info.role)],
+        ["Location", esc(info.location)],
+        ["Job type", esc(info.type)],
+        ["Contact email", info.emails.map(e => `<a href="mailto:${esc(e)}">${esc(e)}</a>`).join(", ") || "—"],
+        ["Apply / other links", info.urls.map(u => `<a href="${esc(u)}">${esc(u)}</a>`).join("<br>") || "—"],
+        ["Post link", /^https?:/.test(p.link) ? `<a href="${esc(p.link)}">${esc(p.link)}</a>` : "—"],
+        ["Saved at", esc(p.time)]
+      ].map(([k, v]) => `<tr><td width="28%" style="background:#eef3fb;font-weight:bold;color:#334155">${k}</td><td>${v}</td></tr>`).join("");
+      return `
+      <h2 style="color:#1f2937;margin-top:18pt">${n}. ${esc(info.role !== "—" ? info.role : (p.author || "Hiring post"))}</h2>
+      <table border="1" cellspacing="0" cellpadding="5" width="100%" style="border-collapse:collapse;border-color:#cbd5e1;font-size:10pt">${meta}</table>
+      <p style="font-weight:bold;color:#0a66c2;margin:10pt 0 4pt">Post details</p>
+      <div style="border-left:3px solid #0a66c2;padding:6pt 10pt;background:#fafafa;font-size:10.5pt">${esc(p.text).replace(/\n/g, "<br>")}</div>`;
+    }).join("")}`).join("");
+
   return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>Hiring Posts ${prettyDate(key)}</title>
-<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt}</style></head>
-<body><h1>Hiring Posts — ${prettyDate(key)}</h1><p>Month: <b>${MONTHS[+key.split("-")[1] - 1]} ${key.split("-")[0]}</b> · Total: <b>${posts.length}</b></p><hr>${items}</body></html>`;
+<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#111}td{vertical-align:top}a{color:#0a66c2}</style></head>
+<body>
+<p align="center" style="font-size:24pt;font-weight:bold;color:#0a66c2;margin:0">Hiring Posts Report</p>
+<p align="center" style="font-size:13pt;color:#555;margin:4pt 0 14pt">${prettyDate(key)} &nbsp;|&nbsp; ${MONTHS[+m - 1]} ${y}</p>
+<table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;border-color:#cbd5e1;margin-bottom:12pt">
+  <tr style="background:#0a66c2;color:#ffffff;font-weight:bold"><td>Total posts</td>${Object.keys(groups).map(g => `<td>${esc(g)}</td>`).join("")}</tr>
+  <tr style="font-size:14pt;font-weight:bold"><td align="center">${posts.length}</td>${Object.values(groups).map(l => `<td align="center">${l.length}</td>`).join("")}</tr>
+</table>
+<h1 style="color:#0a66c2">Summary</h1>
+<table border="1" cellspacing="0" cellpadding="5" width="100%" style="border-collapse:collapse;border-color:#cbd5e1;font-size:9.5pt">
+  <tr style="background:#0a66c2;color:#ffffff;font-weight:bold"><td>#</td><td>Company / Posted by</td><td>Role</td><td>Location</td><td>Type</td><td>Source</td><td>Link</td></tr>
+  ${summaryRows}
+</table>
+<br clear="all" style="page-break-before:always">
+${sections}
+<p align="center" style="color:#999;font-size:9pt;margin-top:20pt">Generated by Hiring Post Collector · ${new Date().toLocaleString()}</p>
+</body></html>`;
 }
 
 async function getDays() {
@@ -153,23 +215,46 @@ async function updateBadge() {
 }
 chrome.storage.onChanged.addListener(ch => { if (ch.enabled) updateBadge(); });
 
+// ---------- Duplicate bondho: sob diner post er key mone rakhi (reload / porer din eo ekই post 2 bar na) ----------
+const normText = t => String(t || "").toLowerCase().replace(/https?:\/\/\S+/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim().slice(0, 200);
+function keysFor(p) {
+  const k = ["t:" + normText(p.text)];
+  if (/^https?:/.test(p.link)) k.push("l:" + p.link.replace(/[?#].*$/, "").replace(/\/$/, ""));
+  return k;
+}
+let queue = Promise.resolve();
+const enqueue = fn => (queue = queue.then(fn, fn)); // ek sathe onek post ashleo ekta ekta kore save (data haray na, duplicate hoy na)
+
+async function addPost(p) {
+  const { enabled = true, seen = {} } = await chrome.storage.local.get(["enabled", "seen"]);
+  if (!enabled) return false;
+  const keys = keysFor(p);
+  if (keys.some(k => seen[k])) return false; // age copy hoyeche
+  const days = await getDays();
+  const key = dayKey();
+  (days[key] = days[key] || []).push(p);
+  keys.forEach(k => (seen[k] = key));
+  const cutoff = dayKey(new Date(Date.now() - 60 * 864e5)); // 60 diner beshi purono key bad
+  for (const k in seen) if (seen[k] < cutoff) delete seen[k];
+  await chrome.storage.local.set({ days, seen });
+  updateBadge();
+  return true;
+}
+
+// Ager version er jomano post gulor key o seen e tuli (jate abar copy na hoy)
+async function backfillSeen() {
+  const { seen = {}, days = {} } = await chrome.storage.local.get(["seen", "days"]);
+  for (const [d, list] of Object.entries(days)) for (const p of list) keysFor(p).forEach(k => (seen[k] = seen[k] || d));
+  await chrome.storage.local.set({ seen });
+}
+chrome.runtime.onInstalled.addListener(backfillSeen);
+
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   (async () => {
    try {
     if (msg.type === "HIRING_POST") {
-      const { enabled = true } = await chrome.storage.local.get("enabled");
-      if (!enabled) return sendResponse({ ok: false });
-      const days = await getDays();
-      const key = dayKey();
-      const list = days[key] || [];
-      const p = msg.post;
-      const dup = list.some(x => (x.link === p.link && !/^\(link/.test(p.link)) || x.text.slice(0, 150) === p.text.slice(0, 150));
-      if (dup) return sendResponse({ ok: false });
-      list.push(p);
-      days[key] = list;
-      await chrome.storage.local.set({ days });
-      updateBadge();
-      sendResponse({ ok: true });
+      const ok = await enqueue(() => addPost(msg.post));
+      sendResponse({ ok });
     } else if (msg.type === "DOWNLOAD") {
       await saveWord(msg.key || dayKey());
       sendResponse({ ok: true });

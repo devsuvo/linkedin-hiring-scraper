@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0 — 2026-11-18
+- Feed sesh hole (niche pouche notun post na ashle) auto reload, 2 minit e 1 bar er beshi na
+- Duplicate bondho: sob diner post er link + lekha mone rakhe (60 din) — reload / porer din eo ekই post 2 bar copy hoy na
+- Post save ekta ekta kore (queue) — fast scroll e data haray na / duplicate hoy na
+- Word file notun design: title, total count, Summary table (Company, Role, Location, Type, Source, Link), LinkedIn/Facebook alada section, protiti post e info table (email, apply link soho) + details
+
 ## 1.9.0 — 2026-11-18
 - Aro fast: scroll ~1-1.4s por por (minimize e 1.2s), post scan 300ms, copy delay 400ms
 
