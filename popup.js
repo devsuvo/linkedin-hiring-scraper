@@ -4,12 +4,13 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, autoSave = true } = await chrome.storage.local.get(["days", "autoSave"]);
+  const { days = {}, lastSavedPath } = await chrome.storage.local.get(["days", "lastSavedPath"]);
   const today = dayKey();
   const [y, m, d] = today.split("-");
   const todayPosts = days[today] || [];
   $("count").textContent = todayPosts.length;
-  $("today").textContent = `File: HiringPosts/${MONTHS[+m - 1]}-${y}/Hiring_Posts_${d}-${MONTHS[+m - 1]}-${y}.doc`;
+  $("today").textContent = `Save hobe: Downloads\\HiringPosts\\${MONTHS[+m - 1]}-${y}\\Hiring_Posts_${d}-${MONTHS[+m - 1]}-${y}.doc`;
+  $("last").textContent = lastSavedPath ? `Last saved: ${lastSavedPath}` : "Ekhono kono file download hoy ni";
 
   const keys = Object.keys(days).sort().reverse();
   $("days").innerHTML = "";
@@ -35,6 +36,8 @@ async function render() {
 }
 
 $("dl").onclick = () => chrome.runtime.sendMessage({ type: "DOWNLOAD", key: dayKey() });
+$("folder").onclick = () => chrome.runtime.sendMessage({ type: "SHOW_FOLDER" });
+chrome.storage.onChanged.addListener(render);
 $("dlDay").onclick = () => $("days").value && chrome.runtime.sendMessage({ type: "DOWNLOAD", key: $("days").value });
 $("clearDay").onclick = async () => {
   const k = $("days").value;

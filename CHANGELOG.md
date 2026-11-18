@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 — 2026-11-18
+- Protidin dupur 1tar por (ba 1tar por PC/Chrome on korle) notification: "Download" chaple tobei download
+- Download sesh hole full path soho notification; click korle folder khule
+- Popup: kon path e save hobe, last saved full path, "Open Download Folder" button
+- Extension icon add
+
 ## 1.3.0 — 2026-11-18
 - Auto-download bad: post shudhu jomano hoy, Word file download hoy shudhu button chaple
 - Popup theke auto-save checkbox remove

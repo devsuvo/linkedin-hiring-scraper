@@ -1,5 +1,8 @@
 // Protidin alada Word file: Downloads/HiringPosts/<Month-Year>/Hiring_Posts_<DD-Month-YYYY>.doc
+// Dupur 1tar por (ba 1tar por PC/Chrome on korle) notification -> "Download" chaple tobei download
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const NOTIFY_HOUR = 13; // dupur 1ta
+const NOTIF_ID = "daily-hiring-download";
 
 function dayKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -35,14 +38,69 @@ async function getDays() {
   return days; // { "2026-11-18": [posts] }
 }
 
+// Download kore, sesh hole full path notification e dekhay
 async function saveWord(key = dayKey()) {
   const days = await getDays();
   const posts = days[key] || [];
   const html = "﻿" + buildWordHtml(key, posts);
   const url = "data:application/msword;charset=utf-8," + encodeURIComponent(html);
-  await chrome.downloads.download({ url, filename: fileNameFor(key), conflictAction: "overwrite", saveAs: false });
+  const id = await chrome.downloads.download({ url, filename: fileNameFor(key), conflictAction: "overwrite", saveAs: false });
+  await chrome.storage.local.set({ lastDownloadId: id });
+  return id;
 }
 
+chrome.downloads.onChanged.addListener(async delta => {
+  if (!delta.state || delta.state.current !== "complete") return;
+  const { lastDownloadId } = await chrome.storage.local.get("lastDownloadId");
+  if (delta.id !== lastDownloadId) return;
+  const [item] = await chrome.downloads.search({ id: delta.id });
+  if (!item) return;
+  await chrome.storage.local.set({ lastSavedPath: item.filename });
+  chrome.notifications.create("saved-" + delta.id, {
+    type: "basic", iconUrl: "icons/icon128.png",
+    title: "Word file saved ✔",
+    message: item.filename,
+    contextMessage: "Click korle folder khulbe",
+    priority: 1
+  });
+});
+
+// ---------- daily 1 PM notification ----------
+async function checkDaily() {
+  const now = new Date();
+  if (now.getHours() < NOTIFY_HOUR) return;
+  const key = dayKey(now);
+  const { lastNotified } = await chrome.storage.local.get("lastNotified");
+  if (lastNotified === key) return; // aaj already notify kora hoyeche
+  const count = ((await getDays())[key] || []).length;
+  await chrome.storage.local.set({ lastNotified: key });
+  chrome.notifications.create(NOTIF_ID, {
+    type: "basic", iconUrl: "icons/icon128.png",
+    title: `Aajker Hiring Posts: ${count} ta`,
+    message: `Word file download korben?\nPath: Downloads/${fileNameFor(key)}`,
+    buttons: [{ title: "Download" }, { title: "Pore" }],
+    requireInteraction: true,
+    priority: 2
+  });
+}
+
+chrome.notifications.onButtonClicked.addListener(async (id, btn) => {
+  chrome.notifications.clear(id);
+  if (id === NOTIF_ID && btn === 0) saveWord(dayKey());
+});
+chrome.notifications.onClicked.addListener(async id => {
+  chrome.notifications.clear(id);
+  if (id === NOTIF_ID) saveWord(dayKey());
+  else if (id.startsWith("saved-")) chrome.downloads.show(+id.slice(6));
+});
+
+function setupAlarm() {
+  chrome.alarms.create("daily-check", { periodInMinutes: 10, delayInMinutes: 1 });
+  checkDaily();
+}
+chrome.alarms.onAlarm.addListener(a => { if (a.name === "daily-check") checkDaily(); });
+
+// ---------- badge + messages ----------
 async function updateBadge() {
   const days = await getDays();
   const n = (days[dayKey()] || []).length;
@@ -57,7 +115,7 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
       const key = dayKey();
       const list = days[key] || [];
       const p = msg.post;
-      const dup = list.some(x => (x.link === p.link && !/\/feed\/?$/.test(p.link)) || x.text.slice(0, 150) === p.text.slice(0, 150));
+      const dup = list.some(x => (x.link === p.link && !/^\(link/.test(p.link)) || x.text.slice(0, 150) === p.text.slice(0, 150));
       if (dup) return sendResponse({ ok: false });
       list.push(p);
       days[key] = list;
@@ -66,6 +124,10 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
       sendResponse({ ok: true });
     } else if (msg.type === "DOWNLOAD") {
       await saveWord(msg.key || dayKey());
+      sendResponse({ ok: true });
+    } else if (msg.type === "SHOW_FOLDER") {
+      const { lastDownloadId } = await chrome.storage.local.get("lastDownloadId");
+      if (lastDownloadId) chrome.downloads.show(lastDownloadId); else chrome.downloads.showDefaultFolder();
       sendResponse({ ok: true });
     } else if (msg.type === "CLEAR_DAY") {
       const days = await getDays();
@@ -78,5 +140,5 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   return true;
 });
 
-chrome.runtime.onStartup.addListener(updateBadge);
-chrome.runtime.onInstalled.addListener(updateBadge);
+chrome.runtime.onStartup.addListener(() => { updateBadge(); setupAlarm(); });
+chrome.runtime.onInstalled.addListener(() => { updateBadge(); setupAlarm(); });
