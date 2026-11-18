@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2 — 2026-11-18
+- Fix: bar bar auto refresh. LinkedIn er bhitorer scroll container khuje scroll kore (window na)
+- Reload shudhu ~15 bar stuck hole, ar 10 minit e ekbar er beshi na
+
 ## 1.5.1 — 2026-11-18
 - Auto-scroll by default ON: user scroll kora lage na, extension nijei scroll kore
 

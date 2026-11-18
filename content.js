@@ -166,16 +166,39 @@ function autoTick() {
     if (/^(show more feed updates|new posts?|see new posts?)/.test(t)) { try { b.click(); } catch (e) {} }
   }
 
-  window.scrollBy({ top: Math.round(window.innerHeight * (0.7 + Math.random() * 0.3)), behavior: "instant" });
+  const sc = getScroller();
+  const before = sc.scrollTop;
+  sc.scrollBy({ top: Math.round(window.innerHeight * (0.7 + Math.random() * 0.3)), behavior: "instant" });
   scan();
 
-  const h = document.documentElement.scrollHeight;
-  if (h === lastHeight) stuck++; else { stuck = 0; lastHeight = h; }
-  if (stuck >= 6) { // notun post load hocche na -> feed reload
-    log("Feed stuck, reloading…");
-    chrome.storage.local.set({ lastReload: Date.now() });
-    location.reload();
+  // Stuck = scroll position o height dutoi bodlay ni
+  const h = sc.scrollHeight;
+  if (sc.scrollTop === before && h === lastHeight) stuck++; else stuck = 0;
+  lastHeight = h;
+  if (stuck >= 15) { // ~15 bar cheshta korar poro kichu na hole
+    chrome.storage.local.get("lastReload").then(({ lastReload = 0 }) => {
+      if (Date.now() - lastReload < 10 * 60 * 1000) { stuck = 0; return; } // 10 minit e ekbar er beshi reload na
+      log("Feed stuck, reloading…");
+      chrome.storage.local.set({ lastReload: Date.now() });
+      location.reload();
+    });
   }
+}
+
+// LinkedIn er notun layout e feed window na, bhitorer ekta div scroll hoy — sobcheye boro scrollable element khuji
+let cachedScroller = null;
+function getScroller() {
+  if (cachedScroller && cachedScroller.isConnected && cachedScroller.scrollHeight > cachedScroller.clientHeight + 50) return cachedScroller;
+  const root = document.scrollingElement || document.documentElement;
+  let best = root, bestH = root.scrollHeight > root.clientHeight + 50 ? root.scrollHeight : 0;
+  for (const el of document.querySelectorAll("main, div, section")) {
+    if (el.scrollHeight <= el.clientHeight + 100 || el.clientHeight < 300) continue;
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === "auto" || oy === "scroll") && el.scrollHeight > bestH) { best = el; bestH = el.scrollHeight; }
+  }
+  cachedScroller = best;
+  log("Scroller:", best === root ? "window" : best);
+  return best;
 }
 
 let ownTimer = null;
