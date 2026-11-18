@@ -177,7 +177,7 @@ scan();
 // ---------- Auto-scroll (LinkedIn feed) ----------
 // Page dekha gele: nijer timer e 5-9s por por scroll
 // Minimize/hidden: Chrome timer slow kore dey, tai background alarm (30s) "AUTO_TICK" pathay
-let lastHeight = 0, stuck = 0, lastTick = 0;
+let lastTick = 0, maxHeight = 0, lastGrowAt = Date.now(), nudged = 0, reloading = false;
 const onFeed = () => isLinkedIn && /^\/feed\/?/.test(location.pathname);
 
 function autoTick() {
@@ -195,28 +195,24 @@ function autoTick() {
   }
 
   const sc = getScroller();
-  const before = sc.scrollTop;
   sc.scrollBy({ top: Math.round(window.innerHeight * (0.9 + Math.random() * 0.2)), behavior: document.hidden ? "instant" : "smooth" });
   scan();
 
-  setTimeout(() => {
-    // Stuck = scroll ekdom nore ni (feed er sesh e, notun post load hocche)
-    // Stuck = feed er ekdom niche achi ar notun post (height) ase ni
-    const viewH = sc === (document.scrollingElement || document.documentElement) ? window.innerHeight : sc.clientHeight;
-    const atBottom = sc.scrollTop + viewH >= sc.scrollHeight - 80;
-    if (atBottom && sc.scrollHeight === lastHeight) stuck++; else if (sc.scrollHeight !== lastHeight) stuck = 0;
-    lastHeight = sc.scrollHeight;
-    // Feed sesh: age 2 bar ektu upore-niche kore dekhi; tao notun post na ashle page reload (2 minit e 1 bar er beshi na)
-    if (stuck === 3 || stuck === 6) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "instant" }); }
-    if (stuck >= 9) {
-      stuck = 0;
-      chrome.storage.local.get("lastReload").then(({ lastReload = 0 }) => {
-        if (Date.now() - lastReload < 2 * 60 * 1000) return;
-        log("Feed sesh — reload kore notun post anchi");
-        chrome.storage.local.set({ lastReload: Date.now() }).then(() => location.reload());
-      }).catch(() => {});
-    }
-  }, 800);
+  // Feed sesh bujhi SOMOY diye: feed er height 300px er beshi na barle = notun post ashe ni.
+  // (Choto loading/animation e height ektu bodlay — sheta dhori na)
+  const H = sc.scrollHeight;
+  if (H > maxHeight + 300) { maxHeight = H; lastGrowAt = now; nudged = 0; }
+  const idle = now - lastGrowAt;
+  if (idle > 6000 && nudged === 0) { nudged = 1; log("Notun post ashche na, ektu upore-niche…"); sc.scrollBy({ top: -400, behavior: "instant" }); }
+  if (idle > 10000 && nudged === 1) { nudged = 2; sc.scrollBy({ top: -400, behavior: "instant" }); }
+  if (idle > 15000 && !reloading) {
+    reloading = true;
+    chrome.storage.local.get("lastReload").then(({ lastReload = 0 }) => {
+      if (Date.now() - lastReload < 60 * 1000) { reloading = false; lastGrowAt = Date.now(); return; } // 1 minit e 1 bar er beshi na
+      log("Feed sesh — reload kore notun post anchi");
+      chrome.storage.local.set({ lastReload: Date.now() }).then(() => location.reload());
+    }).catch(() => { reloading = false; });
+  }
 }
 
 // Scroller: age window (LinkedIn er normal layout). Window scroll na korle tobei feed (main) er bhitorer scrollable box.

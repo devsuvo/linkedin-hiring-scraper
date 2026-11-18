@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1 — 2026-11-18
+- Fix: feed sesh e reload hocchilo na. Ekhon somoy diye bujhe: 15s feed na barle (300px er kom) reload; 6s / 10s e upore-niche nudge; 1 minit e 1 bar er beshi reload na
+
 ## 2.0.0 — 2026-11-18
 - Feed sesh hole (niche pouche notun post na ashle) auto reload, 2 minit e 1 bar er beshi na
 - Duplicate bondho: sob diner post er link + lekha mone rakhe (60 din) — reload / porer din eo ekই post 2 bar copy hoy na
