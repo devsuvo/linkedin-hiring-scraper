@@ -147,7 +147,7 @@ function capture(post) {
     const data = { author: getAuthor(post), text: body, link: link || "(link pawa jay ni)", source: isLinkedIn ? "LinkedIn" : "Facebook", time: new Date().toLocaleString() };
     log("Captured:", data);
     safeSend({ type: "HIRING_POST", post: data });
-  }, 1000);
+  }, 400);
 }
 
 function scan() {
@@ -166,7 +166,7 @@ function scan() {
 let timer = null;
 function throttledScan() {
   if (timer) return;
-  timer = setTimeout(() => { timer = null; scan(); }, 1000);
+  timer = setTimeout(() => { timer = null; scan(); }, 300);
 }
 window.addEventListener("scroll", throttledScan, { passive: true });
 const mo = new MutationObserver(throttledScan);
@@ -184,7 +184,7 @@ function autoTick() {
   if (!alive()) return shutdown();
   if (!enabled || !onFeed()) return;
   const now = Date.now();
-  if (now - lastTick < 1500) return; // duita source theke double tick na
+  if (now - lastTick < 700) return; // duita source theke double tick na
   lastTick = now;
 
   // NOTE: "New posts" button kokhono click kora hoy na — oita puro feed refresh kore dey.
@@ -205,7 +205,7 @@ function autoTick() {
     lastHeight = sc.scrollHeight;
     // Kokhono reload / top e jaowa / "New posts" click na. Stuck hole shudhu 300px upore, porer tick e abar niche
     if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "instant" }); stuck = 0; }
-  }, 1200);
+  }, 800);
 }
 
 // Scroller: age window (LinkedIn er normal layout). Window scroll na korle tobei feed (main) er bhitorer scrollable box.
@@ -239,8 +239,8 @@ function getScroller() {
 let ownTimer = null;
 function startOwnTimer() {
   clearTimeout(ownTimer);
-  const loop = () => { autoTick(); ownTimer = setTimeout(loop, 2000 + Math.random() * 1000); };
-  ownTimer = setTimeout(loop, 1500);
+  const loop = () => { autoTick(); ownTimer = setTimeout(loop, 1000 + Math.random() * 400); };
+  ownTimer = setTimeout(loop, 500);
 }
 
 chrome.storage.local.get("autoScroll").then(({ autoScroll = false }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } }).catch(() => {});

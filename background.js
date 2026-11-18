@@ -133,7 +133,7 @@ async function autoScrollTick() {
 let tickTimer = null;
 function startTicker() {
   if (tickTimer) return;
-  tickTimer = setInterval(autoScrollTick, 2500);
+  tickTimer = setInterval(autoScrollTick, 1200);
 }
 function stopTicker() { clearInterval(tickTimer); tickTimer = null; }
 async function syncAutoScrollAlarm() {

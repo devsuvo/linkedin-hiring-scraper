@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.0 — 2026-11-18
+- Aro fast: scroll ~1-1.4s por por (minimize e 1.2s), post scan 300ms, copy delay 400ms
+
 ## 1.8.0 — 2026-11-18
 - Minimize thakleo 2.5s por por auto-scroll: background service worker theke tick pathano hoy (tab timer throttle bypass)
 - Hidden tab e instant scroll (smooth scroll hidden tab e chole na)
