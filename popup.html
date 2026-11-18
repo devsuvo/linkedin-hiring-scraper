@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 360px; font-family: Segoe UI, Arial, sans-serif; margin: 12px; }
+  h3 { margin: 0 0 4px; color: #0a66c2; }
+  .sub { font-size: 12px; color: #555; margin-bottom: 8px; }
+  button { padding: 8px; margin: 4px 0; border: 0; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .full { width: 100%; }
+  #dl { background: #0a66c2; color: #fff; }
+  select { width: 100%; padding: 6px; margin-top: 6px; }
+  .row { display: flex; gap: 6px; } .row button { flex: 1; }
+  .gray { background: #eee; }
+  #list { max-height: 240px; overflow: auto; margin-top: 8px; font-size: 12px; }
+  .item { border-bottom: 1px solid #ddd; padding: 6px 0; }
+  .item a { color: #0a66c2; word-break: break-all; }
+  label { font-size: 13px; display: block; margin: 6px 0; }
+</style>
+</head>
+<body>
+  <h3>Today: <span id="count">0</span> hiring posts</h3>
+  <div class="sub" id="today"></div>
+  <label><input type="checkbox" id="auto"> Auto-save daily Word file</label>
+  <button id="dl" class="full">Download Today's Word File</button>
+  <select id="days"></select>
+  <div class="row">
+    <button id="dlDay" class="gray">Download selected day</button>
+    <button id="clearDay" class="gray">Clear selected day</button>
+  </div>
+  <div id="list"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
