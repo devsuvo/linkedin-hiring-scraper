@@ -4,7 +4,7 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, lastSavedPath, autoScroll = false } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
+  const { days = {}, lastSavedPath, autoScroll = true } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
   $("autoScroll").checked = autoScroll;
   const today = dayKey();
   const [y, m, d] = today.split("-");

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.1 — 2026-11-18
+- Auto-scroll by default ON: user scroll kora lage na, extension nijei scroll kore
+
 ## 1.5.0 — 2026-11-18
 - Auto-scroll LinkedIn feed (popup toggle): visible thakle 5-9s por por, minimize thakle background alarm diye 30s por por scroll
 - Notun post load na hole feed reload; "New posts"/"Show more feed updates" button auto click

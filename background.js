@@ -106,7 +106,7 @@ chrome.alarms.onAlarm.addListener(a => {
 
 // ---------- Auto-scroll: minimize thakleo 30s por por LinkedIn tab ke scroll korano ----------
 async function autoScrollTick() {
-  const { autoScroll } = await chrome.storage.local.get("autoScroll");
+  const { autoScroll = true } = await chrome.storage.local.get("autoScroll");
   if (!autoScroll) return;
   let tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
   if (!tabs.length) {
@@ -117,7 +117,7 @@ async function autoScrollTick() {
   for (const t of tabs) chrome.tabs.sendMessage(t.id, { type: "AUTO_TICK" }).catch(() => {});
 }
 async function syncAutoScrollAlarm() {
-  const { autoScroll } = await chrome.storage.local.get("autoScroll");
+  const { autoScroll = true } = await chrome.storage.local.get("autoScroll");
   if (autoScroll) chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 });
   else chrome.alarms.clear("auto-scroll");
 }

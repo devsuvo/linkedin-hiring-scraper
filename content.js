@@ -185,7 +185,7 @@ function startOwnTimer() {
   ownTimer = setTimeout(loop, 3000);
 }
 
-chrome.storage.local.get("autoScroll").then(({ autoScroll }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
+chrome.storage.local.get("autoScroll").then(({ autoScroll = true }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
 chrome.storage.onChanged.addListener(ch => {
   if (!ch.autoScroll) return;
   if (ch.autoScroll.newValue && onFeed()) startOwnTimer(); else clearTimeout(ownTimer);
