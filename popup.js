@@ -4,7 +4,9 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, lastSavedPath, autoScroll = false, enabled = true } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll", "enabled"]);
+  const { days = {}, lastSavedPath, autoScroll = false, enabled = true, errors = [] } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll", "enabled", "errors"]);
+  $("errBox").style.display = errors.length ? "block" : "none";
+  $("errList").textContent = errors.slice().reverse().map(e => `${e.time} [${e.where}] ${e.msg}`).join("\n");
   $("enabled").checked = enabled;
   $("enabledTxt").textContent = enabled ? "ON" : "OFF";
   $("enabledTxt").style.color = enabled ? "#16a34a" : "#dc2626";
@@ -56,6 +58,7 @@ $("run").onclick = async () => {
   }
   await chrome.storage.local.set({ autoScroll: on });
 };
+$("errClear").onclick = () => chrome.storage.local.set({ errors: [] });
 $("folder").onclick = () => chrome.runtime.sendMessage({ type: "SHOW_FOLDER" });
 chrome.storage.onChanged.addListener(render);
 $("dlDay").onclick = () => $("days").value && chrome.runtime.sendMessage({ type: "DOWNLOAD", key: $("days").value });

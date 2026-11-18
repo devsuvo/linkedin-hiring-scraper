@@ -4,6 +4,22 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 const NOTIFY_HOUR = 13; // dupur 1ta
 const NOTIF_ID = "daily-hiring-download";
 
+// ---------- Error handling: kono error Chrome er "Errors" e na giye popup e dekhabe ----------
+async function logError(where, err) {
+  const msg = String((err && (err.message || err)) || "unknown");
+  try {
+    const { errors = [] } = await chrome.storage.local.get("errors");
+    errors.push({ time: new Date().toLocaleString(), where, msg });
+    await chrome.storage.local.set({ errors: errors.slice(-10) });
+  } catch (e) {}
+}
+self.addEventListener("unhandledrejection", e => { e.preventDefault(); logError("background", e.reason); });
+self.addEventListener("error", e => { e.preventDefault(); logError("background", e.error || e.message); });
+async function safeShow(id) {
+  try { if (id) { await chrome.downloads.show(id); return; } } catch (e) {}
+  try { chrome.downloads.showDefaultFolder(); } catch (e) {}
+}
+
 function dayKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -91,7 +107,7 @@ chrome.notifications.onButtonClicked.addListener(async (id, btn) => {
 chrome.notifications.onClicked.addListener(async id => {
   chrome.notifications.clear(id);
   if (id === NOTIF_ID) saveWord(dayKey());
-  else if (id.startsWith("saved-")) chrome.downloads.show(+id.slice(6));
+  else if (id.startsWith("saved-")) safeShow(+id.slice(6));
 });
 
 function setupAlarm() {
@@ -114,7 +130,7 @@ async function autoScrollTick() {
 async function syncAutoScrollAlarm() {
   const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
   if (autoScroll) chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 });
-  else chrome.alarms.clear("auto-scroll");
+  else chrome.alarms.clear("auto-scroll").catch(() => {});
 }
 chrome.storage.onChanged.addListener(ch => { if (ch.autoScroll) syncAutoScrollAlarm(); });
 
@@ -130,6 +146,7 @@ chrome.storage.onChanged.addListener(ch => { if (ch.enabled) updateBadge(); });
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   (async () => {
+   try {
     if (msg.type === "HIRING_POST") {
       const { enabled = true } = await chrome.storage.local.get("enabled");
       if (!enabled) return sendResponse({ ok: false });
@@ -149,7 +166,7 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
       sendResponse({ ok: true });
     } else if (msg.type === "SHOW_FOLDER") {
       const { lastDownloadId } = await chrome.storage.local.get("lastDownloadId");
-      if (lastDownloadId) chrome.downloads.show(lastDownloadId); else chrome.downloads.showDefaultFolder();
+      await safeShow(lastDownloadId);
       sendResponse({ ok: true });
     } else if (msg.type === "CLEAR_DAY") {
       const days = await getDays();
@@ -157,7 +174,14 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
       await chrome.storage.local.set({ days });
       updateBadge();
       sendResponse({ ok: true });
-    }
+    } else if (msg.type === "CONTENT_ERROR") {
+      await logError("LinkedIn page", msg.msg);
+      sendResponse({ ok: true });
+    } else sendResponse({ ok: false });
+   } catch (e) {
+    await logError("message " + msg.type, e);
+    try { sendResponse({ ok: false, error: String(e.message || e) }); } catch (_) {}
+   }
   })();
   return true;
 });

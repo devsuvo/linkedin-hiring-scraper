@@ -19,6 +19,15 @@ function shutdown() {
   try { window.removeEventListener("scroll", throttledScan); } catch (e) {}
   try { clearTimeout(ownTimer); } catch (e) {}
 }
+// Page e kono error hole Chrome "Errors" e na giye extension er log e jabe
+window.addEventListener("error", e => {
+  if (!String(e.filename || "").startsWith("chrome-extension://")) return;
+  e.preventDefault(); safeSend({ type: "CONTENT_ERROR", msg: String(e.message) });
+});
+window.addEventListener("unhandledrejection", e => {
+  const m = String((e.reason && e.reason.message) || e.reason || "");
+  if (/Extension context invalidated/i.test(m)) { e.preventDefault(); shutdown(); }
+});
 const log = (...a) => console.log("%c[HiringCollector]", "color:#0a66c2;font-weight:bold", ...a);
 
 // ---------- post container ----------
@@ -225,7 +234,7 @@ function startOwnTimer() {
   ownTimer = setTimeout(loop, 3000);
 }
 
-chrome.storage.local.get("autoScroll").then(({ autoScroll = false }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
+chrome.storage.local.get("autoScroll").then(({ autoScroll = false }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } }).catch(() => {});
 chrome.storage.onChanged.addListener(ch => {
   if (!ch.autoScroll) return;
   if (ch.autoScroll.newValue && onFeed()) startOwnTimer(); else clearTimeout(ownTimer);
