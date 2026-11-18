@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0 — 2026-11-18
+- Auto-scroll LinkedIn feed (popup toggle): visible thakle 5-9s por por, minimize thakle background alarm diye 30s por por scroll
+- Notun post load na hole feed reload; "New posts"/"Show more feed updates" button auto click
+- LinkedIn feed tab na thakle background e khule
+
 ## 1.4.0 — 2026-11-18
 - Protidin dupur 1tar por (ba 1tar por PC/Chrome on korle) notification: "Download" chaple tobei download
 - Download sesh hole full path soho notification; click korle folder khule

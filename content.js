@@ -147,3 +147,47 @@ window.addEventListener("scroll", throttledScan, { passive: true });
 new MutationObserver(throttledScan).observe(document.body, { childList: true, subtree: true });
 log("Active on", location.hostname);
 scan();
+
+// ---------- Auto-scroll (LinkedIn feed) ----------
+// Page dekha gele: nijer timer e 5-9s por por scroll
+// Minimize/hidden: Chrome timer slow kore dey, tai background alarm (30s) "AUTO_TICK" pathay
+let lastHeight = 0, stuck = 0, lastTick = 0;
+const onFeed = () => isLinkedIn && /^\/feed\/?/.test(location.pathname);
+
+function autoTick() {
+  if (!onFeed()) return;
+  const now = Date.now();
+  if (now - lastTick < 4000) return; // duita source theke double tick na
+  lastTick = now;
+
+  // "New posts" / "Show more feed updates" button thakle click
+  for (const b of document.querySelectorAll("button")) {
+    const t = (b.innerText || "").trim().toLowerCase();
+    if (/^(show more feed updates|new posts?|see new posts?)/.test(t)) { try { b.click(); } catch (e) {} }
+  }
+
+  window.scrollBy({ top: Math.round(window.innerHeight * (0.7 + Math.random() * 0.3)), behavior: "instant" });
+  scan();
+
+  const h = document.documentElement.scrollHeight;
+  if (h === lastHeight) stuck++; else { stuck = 0; lastHeight = h; }
+  if (stuck >= 6) { // notun post load hocche na -> feed reload
+    log("Feed stuck, reloading…");
+    chrome.storage.local.set({ lastReload: Date.now() });
+    location.reload();
+  }
+}
+
+let ownTimer = null;
+function startOwnTimer() {
+  clearTimeout(ownTimer);
+  const loop = () => { autoTick(); ownTimer = setTimeout(loop, 5000 + Math.random() * 4000); };
+  ownTimer = setTimeout(loop, 3000);
+}
+
+chrome.storage.local.get("autoScroll").then(({ autoScroll }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } });
+chrome.storage.onChanged.addListener(ch => {
+  if (!ch.autoScroll) return;
+  if (ch.autoScroll.newValue && onFeed()) startOwnTimer(); else clearTimeout(ownTimer);
+});
+chrome.runtime.onMessage.addListener(msg => { if (msg.type === "AUTO_TICK") autoTick(); });

@@ -4,7 +4,8 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, lastSavedPath } = await chrome.storage.local.get(["days", "lastSavedPath"]);
+  const { days = {}, lastSavedPath, autoScroll = false } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
+  $("autoScroll").checked = autoScroll;
   const today = dayKey();
   const [y, m, d] = today.split("-");
   const todayPosts = days[today] || [];
@@ -36,6 +37,7 @@ async function render() {
 }
 
 $("dl").onclick = () => chrome.runtime.sendMessage({ type: "DOWNLOAD", key: dayKey() });
+$("autoScroll").onchange = e => chrome.storage.local.set({ autoScroll: e.target.checked });
 $("folder").onclick = () => chrome.runtime.sendMessage({ type: "SHOW_FOLDER" });
 chrome.storage.onChanged.addListener(render);
 $("dlDay").onclick = () => $("days").value && chrome.runtime.sendMessage({ type: "DOWNLOAD", key: $("days").value });

@@ -97,8 +97,31 @@ chrome.notifications.onClicked.addListener(async id => {
 function setupAlarm() {
   chrome.alarms.create("daily-check", { periodInMinutes: 10, delayInMinutes: 1 });
   checkDaily();
+  syncAutoScrollAlarm();
 }
-chrome.alarms.onAlarm.addListener(a => { if (a.name === "daily-check") checkDaily(); });
+chrome.alarms.onAlarm.addListener(a => {
+  if (a.name === "daily-check") checkDaily();
+  if (a.name === "auto-scroll") autoScrollTick();
+});
+
+// ---------- Auto-scroll: minimize thakleo 30s por por LinkedIn tab ke scroll korano ----------
+async function autoScrollTick() {
+  const { autoScroll } = await chrome.storage.local.get("autoScroll");
+  if (!autoScroll) return;
+  let tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
+  if (!tabs.length) {
+    // LinkedIn feed tab na thakle background e ekta khule (focus nibe na)
+    await chrome.tabs.create({ url: "https://www.linkedin.com/feed/", active: false });
+    return;
+  }
+  for (const t of tabs) chrome.tabs.sendMessage(t.id, { type: "AUTO_TICK" }).catch(() => {});
+}
+async function syncAutoScrollAlarm() {
+  const { autoScroll } = await chrome.storage.local.get("autoScroll");
+  if (autoScroll) chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 });
+  else chrome.alarms.clear("auto-scroll");
+}
+chrome.storage.onChanged.addListener(ch => { if (ch.autoScroll) syncAutoScrollAlarm(); });
 
 // ---------- badge + messages ----------
 async function updateBadge() {
