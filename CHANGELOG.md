@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.0 — 2026-11-18
+- Minimize thakleo 2.5s por por auto-scroll: background service worker theke tick pathano hoy (tab timer throttle bypass)
+- Hidden tab e instant scroll (smooth scroll hidden tab e chole na)
+
 ## 1.7.3 — 2026-11-18
 - Auto-scroll fast: 2-3s por por, protibar prai ek screen
 

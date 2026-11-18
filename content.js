@@ -196,7 +196,7 @@ function autoTick() {
 
   const sc = getScroller();
   const before = sc.scrollTop;
-  sc.scrollBy({ top: Math.round(window.innerHeight * (0.9 + Math.random() * 0.2)), behavior: "smooth" });
+  sc.scrollBy({ top: Math.round(window.innerHeight * (0.9 + Math.random() * 0.2)), behavior: document.hidden ? "instant" : "smooth" });
   scan();
 
   setTimeout(() => {
@@ -204,7 +204,7 @@ function autoTick() {
     if (Math.abs(sc.scrollTop - before) < 5 && sc.scrollHeight === lastHeight) stuck++; else stuck = 0;
     lastHeight = sc.scrollHeight;
     // Kokhono reload / top e jaowa / "New posts" click na. Stuck hole shudhu 300px upore, porer tick e abar niche
-    if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "smooth" }); stuck = 0; }
+    if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "instant" }); stuck = 0; }
   }, 1200);
 }
 

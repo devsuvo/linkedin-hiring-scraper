@@ -117,20 +117,29 @@ function setupAlarm() {
 }
 chrome.alarms.onAlarm.addListener(a => {
   if (a.name === "daily-check") checkDaily();
-  if (a.name === "auto-scroll") autoScrollTick();
+  if (a.name === "auto-scroll") { autoScrollTick(); startTicker(); }
 });
 
 // ---------- Auto-scroll: minimize thakleo 30s por por LinkedIn tab ke scroll korano ----------
 async function autoScrollTick() {
-  const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
-  if (!autoScroll) return;
+  const { autoScroll = false, enabled = true } = await chrome.storage.local.get(["autoScroll", "enabled"]);
+  if (!autoScroll || !enabled) return stopTicker();
   const tabs = await chrome.tabs.query({ url: "https://www.linkedin.com/feed*" });
   for (const t of tabs) chrome.tabs.sendMessage(t.id, { type: "AUTO_TICK" }).catch(() => {});
 }
+// Minimize thakle tab er nijer timer Chrome 1 minit e 1 bar kore dey.
+// Tai background (service worker) theke 2.5s por por "AUTO_TICK" pathai — message sathe sathe tab e pouchay.
+// Protiti chrome API call service worker ke jagiye rakhe; mara gele 30s alarm abar chalu kore.
+let tickTimer = null;
+function startTicker() {
+  if (tickTimer) return;
+  tickTimer = setInterval(autoScrollTick, 2500);
+}
+function stopTicker() { clearInterval(tickTimer); tickTimer = null; }
 async function syncAutoScrollAlarm() {
   const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
-  if (autoScroll) chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 });
-  else chrome.alarms.clear("auto-scroll").catch(() => {});
+  if (autoScroll) { chrome.alarms.create("auto-scroll", { periodInMinutes: 0.5 }); startTicker(); }
+  else { chrome.alarms.clear("auto-scroll").catch(() => {}); stopTicker(); }
 }
 chrome.storage.onChanged.addListener(ch => { if (ch.autoScroll) syncAutoScrollAlarm(); });
 
