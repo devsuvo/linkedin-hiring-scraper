@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-11-18
+- Post er shudhu mool lekha (body) copy hoy, header/"likes this"/headline bad
+- Hiring check shudhu body te — headline e "HR/Recruitment" thakle ar dhore na
+- Hiring keyword aro specific (we are hiring, #hiring, vacancy, job opening, join our team ...)
+- Post link: anchor → HTML urn → LinkedIn tracking data decode; na pele "(link pawa jay ni)", feed URL na
+- Author name ber kora improve; Console e `[HiringCollector]` log
+
 ## 1.1.0 — 2026-11-18
 - LinkedIn er notun layout e post detect fix (text diye khuje, Like/Comment button wala container ke post dhora hoy)
 - Post link ber kora hoy post er HTML theke (urn:li:activity / ugcPost / share)

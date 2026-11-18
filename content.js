@@ -1,28 +1,53 @@
-// Scroll korar somoy hiring post detect kore background e pathay
-// LinkedIn/Facebook er class name bar bar bodlay, tai text diye khuje post container ber kori
-const HIRING_RE = /we\s*(?:are|'re|’re)\s*hiring|#hiring|\bhiring\b|now\s*hiring|job\s*(?:opening|vacancy|circular)|নিয়োগ|চাকরি/i;
+// Hiring Post Collector — content script
+// Flow: post container khujo -> post er MOOL lekha (body) ber koro -> body te hiring thakle
+//       author + body + post link background e pathao
+const HIRING_RE = /we\s*(?:are|'re|’re)\s*hiring|#hiring\b|\bnow\s*hiring|\bis\s*hiring|\bhiring\s*(?:for|now|alert)|\bjob\s*(?:opening|vacancy|circular|alert)|\bvacanc(?:y|ies)\b|\bopen\s*positions?\b|\bjoin\s*our\s*team|\blooking\s*for\s*(?:a|an)\s+[\w\s-]{2,40}(?:developer|engineer|designer|manager|executive|intern|officer|specialist)|নিয়োগ\s*বিজ্ঞপ্তি|চাকরির?\s*সুযোগ|আমরা\s*নিয়োগ/i;
 const isLinkedIn = location.hostname.includes("linkedin.com");
 const done = new WeakSet();
 const sentKeys = new Set();
+const log = (...a) => console.log("%c[HiringCollector]", "color:#0a66c2;font-weight:bold", ...a);
 
-// Post container: je ancestor er moddhe Like/React/Comment button ache
-const ACTION_RE = /\b(like|react|comment|repost|share)\b|লাইক|মন্তব্য/i;
+// ---------- post container ----------
+const ACTION_RE = /\b(like|react|comment|repost|share|send)\b|লাইক|মন্তব্য/i;
 function findPostContainer(el) {
   let node = el;
-  for (let i = 0; i < 30 && node && node !== document.body; i++) {
-    if (node.matches?.('[data-urn*="activity"], [data-id*="activity"], [role="article"], [data-view-name="feed-full-update"]')) {
-      // Facebook comment o role=article; outer article nibo
-      const outer = node.parentElement?.closest('[role="article"]');
-      return outer || node;
+  for (let i = 0; i < 35 && node && node !== document.body; i++) {
+    if (node.matches?.('[data-urn*="activity"], [data-id*="activity"], [data-view-name="feed-full-update"], [role="article"]')) {
+      return node.parentElement?.closest('[role="article"]') || node; // FB comment na, puro post
     }
     if (node.querySelectorAll) {
-      const btns = node.querySelectorAll('button[aria-label], div[role="button"][aria-label]');
       let hits = 0;
-      for (const b of btns) if (ACTION_RE.test(b.getAttribute("aria-label"))) { if (++hits >= 2) return node; }
+      for (const b of node.querySelectorAll('button[aria-label], div[role="button"][aria-label]')) {
+        if (ACTION_RE.test(b.getAttribute("aria-label")) && ++hits >= 2) return node;
+      }
     }
     node = node.parentElement;
   }
   return null;
+}
+
+// ---------- post body (header/author/button bad diye mool lekha) ----------
+function getBody(post) {
+  const known = post.querySelector(
+    '.update-components-text, .feed-shared-update-v2__description, [data-view-name="feed-commentary"], [data-testid="expandable-text-box"], [data-ad-preview="message"], [data-ad-comet-preview="message"]'
+  );
+  if (known && known.innerText.trim().length > 20) return known.innerText.trim();
+
+  // Fallback: je element e button/link-header nei kintu sobcheye boro lekha ache
+  let best = "", bestLen = 0;
+  for (const el of post.querySelectorAll("span, div, p")) {
+    if (el.querySelector("button, [role='button'], img, video, h1, h2, h3")) continue;
+    if (el.closest("a[href*='/in/'], a[href*='/company/']")) continue; // author/headline link
+    const t = (el.innerText || "").trim();
+    if (t.length > bestLen) { best = t; bestLen = t.length; }
+  }
+  return best;
+}
+
+function cleanText(t) {
+  return t.split("\n").map(s => s.trim()).filter(Boolean)
+    .filter(s => !/^(…\s*more|\.\.\.\s*more|see more|see less|show less|hashtag)$/i.test(s))
+    .join("\n").replace(/…\s*more$/i, "").trim();
 }
 
 function expandSeeMore(post) {
@@ -32,14 +57,47 @@ function expandSeeMore(post) {
   }
 }
 
+// ---------- author ----------
+function getAuthor(post) {
+  const sel = post.querySelector('.update-components-actor__title span[aria-hidden="true"], .update-components-actor__name');
+  if (sel) return sel.innerText.trim().split("\n")[0];
+  for (const a of post.querySelectorAll('a[href*="/in/"], a[href*="/company/"], h2 a, h3 a, strong a')) {
+    const line = (a.innerText || "").trim().split("\n")[0].trim();
+    if (line.length > 1 && line.length < 80 && !/^(feed post|follow|view|\d)/i.test(line)) return line;
+  }
+  return "";
+}
+
+// ---------- post link ----------
+const URN_RE = /urn(?::|%3A)li(?::|%3A)(activity|ugcPost|share)(?::|%3A)(\d{15,22})/i;
+function decodeTracking(val) {
+  // LinkedIn tracking attribute e urn byte-array hisebe thake: {"data":[117,114,110,...]}
+  const out = [];
+  for (const m of val.matchAll(/"data"\s*:\s*\[([\d,\s]+)\]/g)) {
+    try { out.push(String.fromCharCode(...m[1].split(",").map(Number))); } catch (e) {}
+  }
+  try { out.push(atob(val)); } catch (e) {}
+  return out.join(" ");
+}
 function getLink(post) {
-  const html = post.outerHTML;
   if (isLinkedIn) {
-    const m = html.match(/urn:li:(activity|ugcPost|share):(\d{10,})/) ||
-              html.match(/urn%3Ali%3A(activity|ugcPost|share)%3A(\d{10,})/);
-    if (m) return `https://www.linkedin.com/feed/update/urn:li:${m[1]}:${m[2]}/`;
-    const a = post.querySelector('a[href*="/feed/update/"], a[href*="/posts/"]');
+    // 1) direct anchor
+    const a = post.querySelector('a[href*="/feed/update/urn:li:"], a[href*="/posts/"]');
     if (a) return a.href.split("?")[0];
+    // 2) HTML er moddhe urn
+    const html = post.outerHTML;
+    let m = html.match(URN_RE);
+    // 3) tracking attribute decode kore urn
+    if (!m) {
+      for (const el of [post, ...post.querySelectorAll("[data-view-tracking-scope], [data-tracking-scope]")]) {
+        for (const at of ["data-view-tracking-scope", "data-tracking-scope"]) {
+          const v = el.getAttribute?.(at);
+          if (v) { m = decodeTracking(v).match(URN_RE); if (m) break; }
+        }
+        if (m) break;
+      }
+    }
+    if (m) return `https://www.linkedin.com/feed/update/urn:li:${m[1]}:${m[2]}/`;
   } else {
     for (const a of post.querySelectorAll("a[href]")) {
       const h = a.href;
@@ -48,38 +106,25 @@ function getLink(post) {
       }
     }
   }
-  return location.href;
+  return ""; // link pawa jay ni
 }
 
-function getAuthor(post) {
-  const el = post.querySelector(
-    '.update-components-actor__title span[aria-hidden="true"], .update-components-actor__name, a[href*="/in/"] span[aria-hidden="true"], a[href*="/company/"] span[aria-hidden="true"], h2 a, h3 a, strong a, h2 span, h3 span'
-  );
-  return el ? el.innerText.trim().split("\n")[0] : "";
-}
-
-function cleanText(t) {
-  return t.split("\n").map(s => s.trim()).filter(Boolean)
-    .filter(s => !/^(like|comment|repost|send|share|follow|\d+\s*(comments?|reposts?|likes?)|…more|see more)$/i.test(s))
-    .join("\n").trim();
-}
-
+// ---------- capture ----------
 function capture(post) {
   if (done.has(post)) return;
   done.add(post);
   expandSeeMore(post);
   setTimeout(() => {
-    const text = cleanText(post.innerText || "");
-    if (!HIRING_RE.test(text)) return;
+    const body = cleanText(getBody(post));
+    if (!body || !HIRING_RE.test(body)) return; // shudhu mool lekhay hiring thakle
     const link = getLink(post);
-    const key = link !== location.href ? link : text.slice(0, 150);
+    const key = link || body.slice(0, 150);
     if (sentKeys.has(key)) return;
     sentKeys.add(key);
-    chrome.runtime.sendMessage({
-      type: "HIRING_POST",
-      post: { author: getAuthor(post), text, link, source: isLinkedIn ? "LinkedIn" : "Facebook", time: new Date().toLocaleString() }
-    });
-  }, 900);
+    const data = { author: getAuthor(post), text: body, link: link || "(link pawa jay ni)", source: isLinkedIn ? "LinkedIn" : "Facebook", time: new Date().toLocaleString() };
+    log("Captured:", data);
+    chrome.runtime.sendMessage({ type: "HIRING_POST", post: data });
+  }, 1000);
 }
 
 function scan() {
@@ -100,4 +145,5 @@ function throttledScan() {
 }
 window.addEventListener("scroll", throttledScan, { passive: true });
 new MutationObserver(throttledScan).observe(document.body, { childList: true, subtree: true });
+log("Active on", location.hostname);
 scan();
