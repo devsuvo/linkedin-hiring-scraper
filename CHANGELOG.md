@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 — 2026-11-18
+- Popup e extension ON/OFF switch; OFF hole post dhora o auto-scroll bondho, badge e "OFF"
+- Fix: extension reload er por purono tab theke "Extension context invalidated" error, content script nijei bondho hoy
+
 ## 1.6.0 — 2026-11-18
 - Popup e Run / Stop button (auto-scroll by default OFF, Run chaple chalu)
 - Page reload code puro remove: ar kokhono refresh hobe na; stuck hole ektu upore uthe abar niche name

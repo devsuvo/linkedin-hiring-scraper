@@ -122,13 +122,17 @@ chrome.storage.onChanged.addListener(ch => { if (ch.autoScroll) syncAutoScrollAl
 async function updateBadge() {
   const days = await getDays();
   const n = (days[dayKey()] || []).length;
-  chrome.action.setBadgeText({ text: n ? String(n) : "" });
-  chrome.action.setBadgeBackgroundColor({ color: "#0a66c2" });
+  const { enabled = true } = await chrome.storage.local.get("enabled");
+  chrome.action.setBadgeText({ text: !enabled ? "OFF" : n ? String(n) : "" });
+  chrome.action.setBadgeBackgroundColor({ color: enabled ? "#0a66c2" : "#dc2626" });
 }
+chrome.storage.onChanged.addListener(ch => { if (ch.enabled) updateBadge(); });
 
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   (async () => {
     if (msg.type === "HIRING_POST") {
+      const { enabled = true } = await chrome.storage.local.get("enabled");
+      if (!enabled) return sendResponse({ ok: false });
       const days = await getDays();
       const key = dayKey();
       const list = days[key] || [];

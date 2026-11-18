@@ -5,6 +5,20 @@ const HIRING_RE = /we\s*(?:are|'re|’re)\s*hiring|#hiring\b|\bnow\s*hiring|\bis
 const isLinkedIn = location.hostname.includes("linkedin.com");
 const done = new WeakSet();
 const sentKeys = new Set();
+// Extension reload/off hole purono content script theke error jeno na ase
+const alive = () => { try { return !!chrome.runtime?.id; } catch (e) { return false; } };
+let enabled = true;
+chrome.storage.local.get("enabled").then(({ enabled: e = true }) => { enabled = e; }).catch(() => {});
+chrome.storage.onChanged.addListener(ch => { if (ch.enabled) enabled = ch.enabled.newValue; });
+function safeSend(msg) {
+  if (!alive()) return shutdown();
+  try { chrome.runtime.sendMessage(msg).catch(() => {}); } catch (e) { shutdown(); }
+}
+function shutdown() {
+  try { mo.disconnect(); } catch (e) {}
+  try { window.removeEventListener("scroll", throttledScan); } catch (e) {}
+  try { clearTimeout(ownTimer); } catch (e) {}
+}
 const log = (...a) => console.log("%c[HiringCollector]", "color:#0a66c2;font-weight:bold", ...a);
 
 // ---------- post container ----------
@@ -123,11 +137,13 @@ function capture(post) {
     sentKeys.add(key);
     const data = { author: getAuthor(post), text: body, link: link || "(link pawa jay ni)", source: isLinkedIn ? "LinkedIn" : "Facebook", time: new Date().toLocaleString() };
     log("Captured:", data);
-    chrome.runtime.sendMessage({ type: "HIRING_POST", post: data });
+    safeSend({ type: "HIRING_POST", post: data });
   }, 1000);
 }
 
 function scan() {
+  if (!alive()) return shutdown();
+  if (!enabled) return;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
     acceptNode: n => (n.nodeValue.length > 5 && HIRING_RE.test(n.nodeValue)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
   });
@@ -144,7 +160,8 @@ function throttledScan() {
   timer = setTimeout(() => { timer = null; scan(); }, 1000);
 }
 window.addEventListener("scroll", throttledScan, { passive: true });
-new MutationObserver(throttledScan).observe(document.body, { childList: true, subtree: true });
+const mo = new MutationObserver(throttledScan);
+mo.observe(document.body, { childList: true, subtree: true });
 log("Active on", location.hostname);
 scan();
 
@@ -155,7 +172,8 @@ let lastHeight = 0, stuck = 0, lastTick = 0;
 const onFeed = () => isLinkedIn && /^\/feed\/?/.test(location.pathname);
 
 function autoTick() {
-  if (!onFeed()) return;
+  if (!alive()) return shutdown();
+  if (!enabled || !onFeed()) return;
   const now = Date.now();
   if (now - lastTick < 4000) return; // duita source theke double tick na
   lastTick = now;

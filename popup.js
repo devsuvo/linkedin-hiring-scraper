@@ -4,7 +4,11 @@ const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1
 const pretty = k => { const [y, m, d] = k.split("-"); return `${+d} ${MONTHS[+m - 1]} ${y}`; };
 
 async function render() {
-  const { days = {}, lastSavedPath, autoScroll = false } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll"]);
+  const { days = {}, lastSavedPath, autoScroll = false, enabled = true } = await chrome.storage.local.get(["days", "lastSavedPath", "autoScroll", "enabled"]);
+  $("enabled").checked = enabled;
+  $("enabledTxt").textContent = enabled ? "ON" : "OFF";
+  $("enabledTxt").style.color = enabled ? "#16a34a" : "#dc2626";
+  $("run").disabled = !enabled;
   $("run").textContent = autoScroll ? "⏹ Stop Auto-scroll (cholche…)" : "▶ Run Auto-scroll";
   $("run").classList.toggle("on", autoScroll);
   const today = dayKey();
@@ -38,6 +42,10 @@ async function render() {
 }
 
 $("dl").onclick = () => chrome.runtime.sendMessage({ type: "DOWNLOAD", key: dayKey() });
+$("enabled").onchange = e => {
+  const on = e.target.checked;
+  chrome.storage.local.set(on ? { enabled: true } : { enabled: false, autoScroll: false }); // OFF hole auto-scroll o bondho
+};
 $("run").onclick = async () => {
   const { autoScroll = false } = await chrome.storage.local.get("autoScroll");
   const on = !autoScroll;
