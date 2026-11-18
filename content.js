@@ -187,40 +187,49 @@ function autoTick() {
   if (now - lastTick < 4000) return; // duita source theke double tick na
   lastTick = now;
 
-  // "New posts" / "Show more feed updates" button thakle click
-  for (const b of document.querySelectorAll("button")) {
+  // NOTE: "New posts" button kokhono click kora hoy na — oita puro feed refresh kore dey.
+  // Shudhu feed er sesh e "Show more results" thakle sheta click (eta feed refresh kore na, niche aro post add kore)
+  for (const b of document.querySelectorAll("main button")) {
     const t = (b.innerText || "").trim().toLowerCase();
-    if (/^(show more feed updates|new posts?|see new posts?)/.test(t)) { try { b.click(); } catch (e) {} }
+    if (t === "show more results" || t === "show more feed updates") { try { b.click(); } catch (e) {} }
   }
 
   const sc = getScroller();
   const before = sc.scrollTop;
-  sc.scrollBy({ top: Math.round(window.innerHeight * (0.7 + Math.random() * 0.3)), behavior: "instant" });
+  sc.scrollBy({ top: Math.round(window.innerHeight * (0.6 + Math.random() * 0.3)), behavior: "smooth" });
   scan();
 
-  // Stuck = scroll position o height dutoi bodlay ni
-  const h = sc.scrollHeight;
-  if (sc.scrollTop === before && h === lastHeight) stuck++; else stuck = 0;
-  lastHeight = h;
-  // Kokhono page reload kora hoy na. Stuck hole ektu upore uthe abar niche nami — LinkedIn notun post load kore
-  if (stuck >= 3) {
-    log("Feed stuck, nudging…");
-    sc.scrollBy({ top: -600, behavior: "instant" });
-    setTimeout(() => sc.scrollTo({ top: sc.scrollHeight, behavior: "instant" }), 800);
-    stuck = 0;
-  }
+  setTimeout(() => {
+    // Stuck = scroll ekdom nore ni (feed er sesh e, notun post load hocche)
+    if (Math.abs(sc.scrollTop - before) < 5 && sc.scrollHeight === lastHeight) stuck++; else stuck = 0;
+    lastHeight = sc.scrollHeight;
+    // Kokhono reload / top e jaowa / "New posts" click na. Stuck hole shudhu 300px upore, porer tick e abar niche
+    if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "smooth" }); stuck = 0; }
+  }, 1500);
 }
 
-// LinkedIn er notun layout e feed window na, bhitorer ekta div scroll hoy — sobcheye boro scrollable element khuji
+// Scroller: age window (LinkedIn er normal layout). Window scroll na korle tobei feed (main) er bhitorer scrollable box.
+// Sidebar / Messaging box kokhono na.
 let cachedScroller = null;
 function getScroller() {
-  if (cachedScroller && cachedScroller.isConnected && cachedScroller.scrollHeight > cachedScroller.clientHeight + 50) return cachedScroller;
+  if (cachedScroller && cachedScroller.isConnected) return cachedScroller;
   const root = document.scrollingElement || document.documentElement;
-  let best = root, bestH = root.scrollHeight > root.clientHeight + 50 ? root.scrollHeight : 0;
-  for (const el of document.querySelectorAll("main, div, section")) {
-    if (el.scrollHeight <= el.clientHeight + 100 || el.clientHeight < 300) continue;
-    const oy = getComputedStyle(el).overflowY;
-    if ((oy === "auto" || oy === "scroll") && el.scrollHeight > bestH) { best = el; bestH = el.scrollHeight; }
+  let best = root;
+  if (root.scrollHeight <= window.innerHeight + 100) {
+    const main = document.querySelector("main") || document.body;
+    let node = main;
+    while (node && node !== document.body) { // main er upore kono scrollable parent?
+      const oy = getComputedStyle(node).overflowY;
+      if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight + 100) { best = node; break; }
+      node = node.parentElement;
+    }
+    if (best === root) {
+      for (const el of main.querySelectorAll("div")) {
+        if (el.closest("aside, [class*='msg-overlay'], [class*='messaging']")) continue;
+        const oy = getComputedStyle(el).overflowY;
+        if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 100 && el.clientHeight > 300) { best = el; break; }
+      }
+    }
   }
   cachedScroller = best;
   log("Scroller:", best === root ? "window" : best);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.2 — 2026-11-18
+- Fix: feed refresh hoye jacchilo — "New posts" button click bondho (oita feed refresh kore)
+- Feed er sesh e jump-to-bottom bondho; stuck hole shudhu 300px upore
+- Scroller: age window, tarpor shudhu main feed er box; Messaging/sidebar kokhono na
+- Smooth scroll
+
 ## 1.7.1 — 2026-11-18
 - Error fix: download muche felle "Open folder"/notification click e "invalid download id" error ar hobe na
 - Sob background error dhore popup e "⚠ Errors" box e dekhay (Chrome Errors e jabe na)
