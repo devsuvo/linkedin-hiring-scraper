@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.3 — 2026-11-18
+- Auto-scroll fast: 2-3s por por, protibar prai ek screen
+
 ## 1.7.2 — 2026-11-18
 - Fix: feed refresh hoye jacchilo — "New posts" button click bondho (oita feed refresh kore)
 - Feed er sesh e jump-to-bottom bondho; stuck hole shudhu 300px upore

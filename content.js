@@ -184,7 +184,7 @@ function autoTick() {
   if (!alive()) return shutdown();
   if (!enabled || !onFeed()) return;
   const now = Date.now();
-  if (now - lastTick < 4000) return; // duita source theke double tick na
+  if (now - lastTick < 1500) return; // duita source theke double tick na
   lastTick = now;
 
   // NOTE: "New posts" button kokhono click kora hoy na — oita puro feed refresh kore dey.
@@ -196,7 +196,7 @@ function autoTick() {
 
   const sc = getScroller();
   const before = sc.scrollTop;
-  sc.scrollBy({ top: Math.round(window.innerHeight * (0.6 + Math.random() * 0.3)), behavior: "smooth" });
+  sc.scrollBy({ top: Math.round(window.innerHeight * (0.9 + Math.random() * 0.2)), behavior: "smooth" });
   scan();
 
   setTimeout(() => {
@@ -205,7 +205,7 @@ function autoTick() {
     lastHeight = sc.scrollHeight;
     // Kokhono reload / top e jaowa / "New posts" click na. Stuck hole shudhu 300px upore, porer tick e abar niche
     if (stuck >= 3) { log("Feed sesh, notun post er jonno opekkha…"); sc.scrollBy({ top: -300, behavior: "smooth" }); stuck = 0; }
-  }, 1500);
+  }, 1200);
 }
 
 // Scroller: age window (LinkedIn er normal layout). Window scroll na korle tobei feed (main) er bhitorer scrollable box.
@@ -239,8 +239,8 @@ function getScroller() {
 let ownTimer = null;
 function startOwnTimer() {
   clearTimeout(ownTimer);
-  const loop = () => { autoTick(); ownTimer = setTimeout(loop, 5000 + Math.random() * 4000); };
-  ownTimer = setTimeout(loop, 3000);
+  const loop = () => { autoTick(); ownTimer = setTimeout(loop, 2000 + Math.random() * 1000); };
+  ownTimer = setTimeout(loop, 1500);
 }
 
 chrome.storage.local.get("autoScroll").then(({ autoScroll = false }) => { if (autoScroll && onFeed()) { log("Auto-scroll ON"); startOwnTimer(); } }).catch(() => {});
