@@ -50,12 +50,6 @@ async function updateBadge() {
   chrome.action.setBadgeBackgroundColor({ color: "#0a66c2" });
 }
 
-let saveTimer = null;
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveWord(), 4000);
-}
-
 chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
   (async () => {
     if (msg.type === "HIRING_POST") {
@@ -69,8 +63,6 @@ chrome.runtime.onMessage.addListener((msg, _s, sendResponse) => {
       days[key] = list;
       await chrome.storage.local.set({ days });
       updateBadge();
-      const { autoSave = true } = await chrome.storage.local.get("autoSave");
-      if (autoSave) scheduleSave();
       sendResponse({ ok: true });
     } else if (msg.type === "DOWNLOAD") {
       await saveWord(msg.key || dayKey());

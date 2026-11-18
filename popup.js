@@ -10,7 +10,6 @@ async function render() {
   const todayPosts = days[today] || [];
   $("count").textContent = todayPosts.length;
   $("today").textContent = `File: HiringPosts/${MONTHS[+m - 1]}-${y}/Hiring_Posts_${d}-${MONTHS[+m - 1]}-${y}.doc`;
-  $("auto").checked = autoSave;
 
   const keys = Object.keys(days).sort().reverse();
   $("days").innerHTML = "";
@@ -35,7 +34,6 @@ async function render() {
   });
 }
 
-$("auto").onchange = e => chrome.storage.local.set({ autoSave: e.target.checked });
 $("dl").onclick = () => chrome.runtime.sendMessage({ type: "DOWNLOAD", key: dayKey() });
 $("dlDay").onclick = () => $("days").value && chrome.runtime.sendMessage({ type: "DOWNLOAD", key: $("days").value });
 $("clearDay").onclick = async () => {

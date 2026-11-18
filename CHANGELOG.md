@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0 — 2026-11-18
+- Auto-download bad: post shudhu jomano hoy, Word file download hoy shudhu button chaple
+- Popup theke auto-save checkbox remove
+
 ## 1.2.0 — 2026-11-18
 - Post er shudhu mool lekha (body) copy hoy, header/"likes this"/headline bad
 - Hiring check shudhu body te — headline e "HR/Recruitment" thakle ar dhore na
